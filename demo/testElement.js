@@ -4,7 +4,10 @@ import rixt, { update } from '../src/index.js'
 
 const Goodbye = props => {
     return (
-        <p>hello render count: {props.renderCount}</p>
+        <div>            
+            { props === false ? '' : null }
+            <p>hello render count: {props.renderCount}</p>
+        </div>
     )
 }
 
@@ -22,6 +25,9 @@ const Hello = props => {
             <Goodbye renderCount={helloRenderCount}/>
         </div>
 )}
+
+
+let showP = false
 const testElement = () => {
     const key = update()
     return (

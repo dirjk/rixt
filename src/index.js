@@ -1,16 +1,12 @@
 import { 
-    addBranch,
-    newBranch,
-    attachElement,
-    attachElementObject,
-    getElement,
     getDomElement
 } from './utils.js'
 
 let root = undefined
-let tree
-
+let shadows = {}
 function rixt(tag, props, ...children){
+    // we remove all empty strings and none/undefined children
+    children = children.filter(n => n)
     return { tag, props, children}
 }
 let currentPosition = '0'
@@ -46,6 +42,8 @@ function recursiveMount(elementObj, pos) {
     } else if (elementObj.tag && typeof elementObj.tag === 'function') {
         // if its a function, we need to evaluate it before we can build it.
         let evaluatedObj = elementObj.tag(elementObj.props)
+        // lets also save it so we can access it later, if needed
+        shadows[pos] = elementObj
         return recursiveMount(evaluatedObj, pos)
 
     }
@@ -57,15 +55,11 @@ export function mount(mountPoint, element) {
     root = mountPoint
 
     // apparently its not evaluated until right now
-    currentPosition = '0'
-    tree = newBranch()
-    tree.element = 'root'
-    tree.obj = element
+    currentPosition = "0"
+    shadows[currentPosition] = element()
 
     const rootElement = recursiveMount(element(), currentPosition)
     document.getElementById(mountPoint).appendChild(rootElement)
-
-    console.log('tree', tree)
 }
 
 export function update(...everything) {
@@ -74,11 +68,21 @@ export function update(...everything) {
     } else {
         let elementKey = everything[0]
         currentPosition = elementKey
-        console.log('elementKey', elementKey )
         let currentDomElement = getDomElement(document.getElementById(root), elementKey)
-        // let currentElement = getElement(tree, elementKey)
-        // let newElement = recursiveMount(currentElement.obj.tag(currentElement.obj.props), elementKey)
-        // currentDomElement.replaceWith(newElement)
+        let currentElement = shadows[elementKey]
+        if (!currentElement) {
+            console.log('no element to mount', elementKey, shadows)
+        } else {
+            // we need to delete all the children elements that will be updated from the shadow
+            const keys = Object.keys(shadows)
+            keys.forEach(key => {
+                if (key.indexOf(elementKey) === 0 && key !== elementKey ) {
+                    delete shadows[key]
+                }
+            })
+            let newElement = recursiveMount(currentElement, elementKey)
+            currentDomElement.replaceWith(newElement)
+        }
     }
 }
 
