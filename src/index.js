@@ -1,6 +1,10 @@
 import { 
     getDomElement
 } from './utils.js'
+import {
+    getScopedState,
+    setScopedState
+} from './state/index.js'
 
 let root = undefined
 let shadows = {}
@@ -85,5 +89,40 @@ export function update(...everything) {
         }
     }
 }
-
+export function scopedState(scope) {
+    return getScopedState(scope, currentPosition)
+}
+export function updateScopedState(scope, key, value, render) {
+    if (render === undefined) {
+        render = true
+    }
+    let subscribedComponents = setScopedState(scope, key, value)
+    let filteredSubscriptions = []
+    // first we sort the subscribed components keys
+    subscribedComponents.sort((a,b) => {
+        const acount = a.split('.').length
+        const bcount = b.split('.').length
+        return a - b
+    })
+    let test = subscribedComponents[0]
+    let temp = subscribedComponents.slice(1)
+    while(temp.length > 0) {
+        filteredSubscriptions.push(test)
+        temp.forEach((key,i) => {
+            if (key.indexOf(test) === 0) {
+                // get rid of it.
+                temp[i] = null
+            }
+        })
+        temp = temp.filter(n => n)
+        test = temp[0]
+        temp = temp.slice(1)
+    }
+    // now we update for each unique tree that is subscribed to this scope
+    if(render) {
+        filteredSubscriptions.forEach(sub => {
+            update(sub)
+        })
+    }
+}
 export default rixt

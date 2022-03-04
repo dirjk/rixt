@@ -1,12 +1,14 @@
 
 /** @jsx rixt */
-import rixt, { update } from '../src/index.js'
+import rixt, { update, scopedState, updateScopedState} from '../src/index.js'
+import StateExample from './scopedStateDemo.js'
 
 const Goodbye = props => {
     return (
         <div>            
             { props === false ? '' : null }
             <p>hello render count: {props.renderCount}</p>
+            <StateExample/>
         </div>
     )
 }
@@ -29,6 +31,7 @@ const Hello = props => {
 
 let showP = false
 const testElement = () => {
+    const testState = scopedState('test')
     const key = update()
     return (
     <div data={'test'} id="myID">
@@ -37,7 +40,7 @@ const testElement = () => {
         2ndtestElement
         <Hello x={'y'}/>
         <button onclick={() => {
-            update(key)
+            updateScopedState('test', 'example', 'yes, please')
         }}>test button</button>
     </div>
 )}
