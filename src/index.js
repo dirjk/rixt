@@ -9,8 +9,13 @@ import {
 let root = undefined
 let shadows = {}
 function rixt(tag, props, ...children){
-    // we remove all empty strings and none/undefined children
-    children = children.filter(n => n)
+    // we remove all empty strings and none/undefined children, but keep 0s.
+    children = children.filter(n => {
+        if (typeof n === 'number' && n === 0) {
+            return true
+        }
+        return n
+    })
     return { tag, props, children}
 }
 let currentPosition = '0'
@@ -33,7 +38,7 @@ function recursiveMount(elementObj, pos) {
         }
         elementObj.children && elementObj.children.forEach((child, i) => {
             currentPosition = `${pos}.${i}`
-            if (child && (typeof child === 'string' || typeof child === 'number')) {
+            if (( child || child === 0) && (typeof child === 'string' || typeof child === 'number') ) {
                 element.appendChild(document.createTextNode(child))
             } else if (child && typeof child.tag === 'function') {
                 const domElement = recursiveMount(child, currentPosition)
@@ -75,7 +80,7 @@ export function update(...everything) {
         let currentDomElement = getDomElement(document.getElementById(root), elementKey)
         let currentElement = shadows[elementKey]
         if (!currentElement) {
-            console.log('no element to mount', elementKey, shadows)
+            console.log('rixt: no element to mount', elementKey, shadows)
         } else {
             // we need to delete all the children elements that will be updated from the shadow
             const keys = Object.keys(shadows)
@@ -118,6 +123,8 @@ export function updateScopedState(scope, key, value, render) {
         test = temp[0]
         temp = temp.slice(1)
     }
+    // make sure we keep the last one
+    if (test) { filteredSubscriptions.push(test) }
     // now we update for each unique tree that is subscribed to this scope
     if(render) {
         filteredSubscriptions.forEach(sub => {

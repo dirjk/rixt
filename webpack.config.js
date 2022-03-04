@@ -19,6 +19,10 @@ module.exports = {
                     presets: [ '@babel/preset-env'],
                     plugins: [ '@babel/plugin-transform-react-jsx']
                 }
+            },
+            {
+                test: /\.css$/i,
+                loader: 'css-loader'
             }
 
         ]
