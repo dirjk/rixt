@@ -11,7 +11,7 @@ import {
     ScopedStateComponent
 } from './demo.js'
 
-import './demo.css'
+import style from './demo.css'
 
 const mainApp = () => (
     <div class="container">
