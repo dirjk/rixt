@@ -14,3 +14,42 @@ The following happens:
 1. all children elements are deleted from the `shadows`.
 2. the element's DOM tree is rendered using the `recursiveMount()` function. the keys for each element are updated in `shadows` as well.
 
+# shadows 
+
+what is is right now? basically a map.
+{
+    position: {jsx element object}
+}
+
+# component keys
+
+data structure is a series of linked nodes. components are linked to their parents. the keys need to be persistent across renders. also need to know if a component moves.
+parent - component - children 
+
+what is needed?
+* unique key generator.
+* data structure that links components to parents. 
+* map that links position to keys?
+    {
+        position: key
+    }
+
+how would it work?
+
+* component calls update()
+* jsx is reevaluated with its props
+* compare new jsx obj vs existing jsx obj.
+    * if jsx children are the same, and props are the same to them, stop.
+    * if jsx children are the same, but props are different, update the children recursively.
+    * if jsx children are different, update recursively. mount/dismount as needed.
+
+what does mount do?
+what does node strucutre look like?
+{
+    elementType,
+    uniqueKey,
+    currentPosition,
+    currentProps,
+    parent,
+    children: []
+}

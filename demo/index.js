@@ -10,6 +10,9 @@ import {
     ComponentScopedSharedStateComponent,
     ScopedStateComponent
 } from './demo.js'
+import {
+    RootElement
+} from './stateTestComponents'
 
 import style from './demo.css'
 
@@ -44,5 +47,8 @@ const mainApp = () => (
     </div>
 )
 
-mount('index-entry-mount', mainApp)
+// mount('index-entry-mount', mainApp)
 // mount('index-entry-mount', testElement)
+console.log('before mount |', RootElement)
+mount('index-entry-mount', RootElement)
+

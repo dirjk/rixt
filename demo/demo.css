@@ -6,6 +6,11 @@
     margin: 5px;
     border: 2px dotted #000000;
 }
+.sub-container {
+    padding: 5px;
+    margin: 5px;
+    border: 1px dotted #777777;
+}
 .shared-state-component {
     padding: 5px;
     margin: 5px;
