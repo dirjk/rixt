@@ -13,25 +13,22 @@ import {
     getNode
 } from './mount/index.js'
 
-let root = undefined
-let shadows = {}
-let keyToPos = {}
-let posToKey = {}
-const testKey = "abcdef_"
-let testCount = 0
+// rendering engine data structures:
+let rootMountPoint
+let metaKeyToNode = {}
+let metaKeyToPos = {}
+let posToMetaKey = {}
+
+// jsx component generation variables:
+const metaKey_seed = "abcdef_"
+let metaKey_count = 0
 function rixt(tag, props, ...children){
-    // is it possible to tag each function with a key?
-    // no, not directly. however could do a wrapper function with saved meta data.
-    // .... except the wrapper function doesn't save context between calls to rixt(). fuck.
-    // hold on! it does save context if the count is set outside of the x arrow function! success! we can set a component key! fuck yeah!
-    // ... hold on, again... it always seems to be the value of the last key generated, not of a unique key.. hmmmmmmmm...
-    let newTag = undefined
+    let metaTag = undefined
     if (typeof tag === 'function') {
-        testCount = testCount + 1
-        const metaKey = testKey + testCount
-        newTag = function() {
-            // const metaKey = String(testKey + testCount.toString())
-            // console.log('rixt() |', metaKey, tag)
+        console.log('rixt() |', tag, props, [children])
+        metaKey_count = metaKey_count + 1
+        const metaKey = metaKey_seed + metaKey_count
+        metaTag = function() {
             return {
                 metaKey,
                 tag
@@ -45,9 +42,9 @@ function rixt(tag, props, ...children){
         }
         return n
     })
-    return { tag: newTag || tag, props, children}
+    return { tag: metaTag || tag, props, children}
 }
-let currentPosition = '0'
+// the actual rendering function that does most of the work
 function recursiveMount(elementObj, pos, currentNode) {
     // our goal is to return an element so we can mount it somewhere.
     let element
@@ -55,7 +52,6 @@ function recursiveMount(elementObj, pos, currentNode) {
     if (elementObj.tag && typeof elementObj.tag === 'string') {
         // if its a string, we can build an element out of it.
         element = document.createElement(elementObj.tag)
-        element.setAttribute('data-meta', currentNode.metaKey)
         // next we iterate through the props and attach them to the DOM of this element.
         if (elementObj.props && typeof elementObj.props === 'object') {
             Object.keys(elementObj.props).forEach(key => {
@@ -73,37 +69,36 @@ function recursiveMount(elementObj, pos, currentNode) {
             currentPosition = `${pos}.${i}`
             if (( child || child === 0) && (typeof child === 'string' || typeof child === 'number') ) {
                 element.appendChild(document.createTextNode(child))
-            } else if (child && typeof child.tag === 'function') {
-                // this is probably another component.
-                // these nodes get new nodes because they are new jsx components. However, they get created the next level down so for now we just don't do anything with them.
-                const domElement = recursiveMount(child, currentPosition, currentNode)
-                element.appendChild(domElement)
             } else if (child !== null) {
                 // i don't know what this is. maybe something else?
-                // update: these are just regular DOM nodes, not jsx components. it is entirely possible that jsx components exist as children of these nodes.
-                // these nodes should be the same as the parent, because they are not new jsx functions.
+                // update: these are just regular DOM nodes, or unrendered jsx components. simply do a pass through as it will be handled in the next iteration of the recursion.
                 const domElement = recursiveMount(child, currentPosition, currentNode)
                 element.appendChild(domElement)
             }
         })
     } else if (elementObj.tag && typeof elementObj.tag === 'function') {
         console.log('a function got passed to recursiveMount()... ? time for a new node!')
+        // first thing we do for these is to create a new node so we can look at it.
         let newChildNode = newNode()
         // if its a function, we need to evaluate it before we can build it.
+        console.log('recursiveRender() about to eval |', elementObj)
         let metaObject = elementObj.tag()
-        console.log('recursive | ', evaluatedObj)
-        newChildNode.parentKey = currentNode.key
-        newChildNode.metaKey = metaObject.metaKey
-        newChildNode.type = elementObj.tag.name
-        newChildNode.tagType = metaObject.tag.name
+        const metaKey = metaObject.metaKey
+        newChildNode.metaJsxObj = metaObject
+        newChildNode.parentKey = currentNode.metaKey
+        newChildNode.metaKey = metaKey
+        newChildNode.type = metaObject.tag.name
         newChildNode.props = elementObj.props
+
         // here we actually evaluate the function without the meta data
         let evaluatedObj = metaObject.tag(elementObj.props)
+        newChildNode.tagType = evaluatedObj.tag
         // lets also save it so we can access it later, if needed
-        currentNode.jsxChildren.push(newChildNode)
-        shadows[pos] = elementObj
-        posToKey[pos] = newChildNode.key
-        keyToPos[newChildNode.key] = pos
+        currentNode.nodeChildren.push(newChildNode)
+        metaKeyToNode[metaKey] = newChildNode
+        metaKeyToPos[metaKey] = currentPosition
+        posToMetaKey[currentPosition] = metaKey
+        // and finally, we do the actual recursion
         return recursiveMount(evaluatedObj, pos, newChildNode)
 
     }
@@ -111,50 +106,62 @@ function recursiveMount(elementObj, pos, currentNode) {
     return element
 }
 
-export function mount(mountPoint, element) {
-    root = mountPoint
 
-    // apparently its not evaluated until right now
+// global component mounting variables
+let currentPosition
+export function mount(mountPoint, element) {
+    // save the ID where the whole thing is mounted.
+    rootMountPoint = mountPoint
+    // the metaKey isn't defined for the root element, so we set it to 'root' and its position on the DOM tree
+    nodeTree.metaKey = 'root'
+    currentPosition = "0"
+    // set up the maps
+    metaKeyToNode['root'] = nodeTree
+    metaKeyToPos['root'] = currentPosition
+    posToMetaKey[currentPosition] = 'root'
+    // apparently its not evaluated until right now. Note this call isn't made until after the maps are set up.
+    // this is so that this element is registered and up to date when update() or other rixt functions are called.
     const topLevelJSXobject = element()
+    // next we set this component as the root of the nodeTree
     nodeTree.type = element.name
     nodeTree.props = topLevelJSXobject.props
     nodeTree.tagType = topLevelJSXobject.tag
-    currentPosition = "0"
-    posToKey[currentPosition] = nodeTree.key
-    keyToPos[nodeTree.key] = currentPosition
-    shadows[currentPosition] = topLevelJSXobject
+    nodeTree.metaJsxObj = {
+        metaKey: 'root',
+        tag: element
+    }
+    // lets see if we set this up correctly:
+    console.log('mount - metaKeyToNode |', metaKeyToNode)
+    console.log('mount - metaKeyToPos  |', metaKeyToPos)
+    console.log('mount - posToMetaKey  |', posToMetaKey)
+    console.log('mount - nodeTree      |', nodeTree)
 
     const rootElement = recursiveMount(topLevelJSXobject, currentPosition, nodeTree)
     document.getElementById(mountPoint).appendChild(rootElement)
-    console.log('nodeTree', nodeTree)
 }
 
 export function update(...everything) {
     if (everything.length === 0) {
-        return currentPosition
+        return posToMetaKey[currentPosition]
     } else {
-        let elementKey = everything[0]
-        currentPosition = elementKey
-        let currentDomElement = getDomElement(document.getElementById(root), elementKey)
-        let currentElement = shadows[elementKey]
-        if (!currentElement) {
-            console.log('rixt: no element to mount', elementKey, shadows)
-        } else {
-            // we need to delete all the children elements that will be updated from the shadow
-            // temp: skip deleting keyed objects from the keyToPos and posToKey, but eventually will need to remove these as memory management. it should be fine for now because each mounted component is given a new unique key.
-            // also we will leave the node branches unmanaged, although i think that they are deleted automatically if there are no pointers to them.
-            const keys = Object.keys(shadows)
-            keys.forEach(key => {
-                if (key.indexOf(elementKey) === 0 && key !== elementKey ) {
-                    delete shadows[key]
-                }
-            })
-            // get this element from the node tree.
-            let currentNode = getNode(posToKey[elementKey], nodeTree)
-            let newElement = recursiveMount(currentElement, elementKey, currentNode)
-            currentDomElement.replaceWith(newElement)
-        }
+        console.log('\n\n-----------\n\n')
+        let elementMetaKey = everything[0]
+        currentPosition = metaKeyToPos[elementMetaKey]
+        let currentDomElement = getDomElement(document.getElementById(rootMountPoint), currentPosition)
+        console.log('currentDomElement |', currentDomElement)
+        // let's rerender this component.
+        // whats the original node look like?
+        const originalNode = metaKeyToNode[elementMetaKey]
+        console.log('originalNode  |', originalNode)
+        const JsxObject = originalNode.metaJsxObj.tag()
+        console.log('JsxObject |', JsxObject)
+        let newRenderedElement = recursiveMount(JsxObject, currentPosition, originalNode)
+        currentDomElement.replaceWith(newRenderedElement)
+        console.log('\n\n-----------\n\n')
         console.log('nodeTree after update() | ', nodeTree)
+        console.log('metaKeyToPos  |', metaKeyToPos)
+        console.log('metaKeyToNode |', metaKeyToNode)
+        console.log('posToMetaKey  |', posToMetaKey)
     }
 }
 export function updateCompState(key, value){

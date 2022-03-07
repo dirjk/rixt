@@ -41,12 +41,13 @@ function getNode(key, node) {
 }
 function newNode () {
     return {
-        key: getNextKey(),
+        metaKey: undefined,
         type: undefined,
         tagType: undefined,
         props: undefined,
         parentKey: undefined,
-        jsxChildren: []
+        metaJsxObj: undefined,
+        nodeChildren: []
     }
 }
 

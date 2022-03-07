@@ -1,3 +1,31 @@
+# refactor notes
+
+goal:
+in index.js:
+* global vars (get rid of unneccesary ones)
+* rixt()
+* mount()
+* update()
+moved out of index.js:
+* recursiveMount()
+
+## what global vars will exist?
+* nodeTree // the root of this tree is a simple node with undefined parents.
+* metaKey to node (map)
+* metaKey to position (map)
+* posistion to metaKey (map)
+to remove:
+* shadows
+
+
+
+
+
+
+
+
+# -------------------------------
+
 # how does this work, overall?
 
 * a jsx function is passed to the mount() function.
