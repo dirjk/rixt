@@ -28,11 +28,12 @@ function rixt(tag, props, ...children){
     let newTag = undefined
     if (typeof tag === 'function') {
         testCount = testCount + 1
-        newTag = function(x) {
+        const metaKey = testKey + testCount
+        newTag = function() {
             // const metaKey = String(testKey + testCount.toString())
             // console.log('rixt() |', metaKey, tag)
             return {
-                metaKey: String(testKey + testCount.toString()),
+                metaKey,
                 tag
             }
         }
@@ -75,14 +76,12 @@ function recursiveMount(elementObj, pos, currentNode) {
             } else if (child && typeof child.tag === 'function') {
                 // this is probably another component.
                 // these nodes get new nodes because they are new jsx components. However, they get created the next level down so for now we just don't do anything with them.
-                console.log('child function |', elementObj.tag, child.tag )
                 const domElement = recursiveMount(child, currentPosition, currentNode)
                 element.appendChild(domElement)
             } else if (child !== null) {
                 // i don't know what this is. maybe something else?
                 // update: these are just regular DOM nodes, not jsx components. it is entirely possible that jsx components exist as children of these nodes.
                 // these nodes should be the same as the parent, because they are not new jsx functions.
-                console.log('other child |', elementObj.tag, child.tag, child.props, child.children )
                 const domElement = recursiveMount(child, currentPosition, currentNode)
                 element.appendChild(domElement)
             }
@@ -120,7 +119,6 @@ export function mount(mountPoint, element) {
     nodeTree.type = element.name
     nodeTree.props = topLevelJSXobject.props
     nodeTree.tagType = topLevelJSXobject.tag
-    console.log('topLevel', topLevelJSXobject, element.name, Object.keys(element), element)
     currentPosition = "0"
     posToKey[currentPosition] = nodeTree.key
     keyToPos[nodeTree.key] = currentPosition
@@ -129,16 +127,12 @@ export function mount(mountPoint, element) {
     const rootElement = recursiveMount(topLevelJSXobject, currentPosition, nodeTree)
     document.getElementById(mountPoint).appendChild(rootElement)
     console.log('nodeTree', nodeTree)
-    console.log('posToKey', posToKey)
-    console.log('keyToPos', keyToPos)
 }
 
 export function update(...everything) {
     if (everything.length === 0) {
-        console.log('update()')
         return currentPosition
     } else {
-        console.log('update(x)', everything)
         let elementKey = everything[0]
         currentPosition = elementKey
         let currentDomElement = getDomElement(document.getElementById(root), elementKey)
@@ -155,14 +149,12 @@ export function update(...everything) {
                     delete shadows[key]
                 }
             })
-            console.log("wtf", elementKey, nodeTree, keyToPos)
             // get this element from the node tree.
             let currentNode = getNode(posToKey[elementKey], nodeTree)
-            console.log('currentNode', currentNode)
             let newElement = recursiveMount(currentElement, elementKey, currentNode)
             currentDomElement.replaceWith(newElement)
         }
-        console.log('update() testCount |', testCount)
+        console.log('nodeTree after update() | ', nodeTree)
     }
 }
 export function updateCompState(key, value){

@@ -35,7 +35,6 @@ function getNode(key, node) {
         if (returnThis) {
             // we found the node recursively, so break and return early
             return returnThis
-            console.log('ERROR: did not return early!')
         }
     })
     return returnThis

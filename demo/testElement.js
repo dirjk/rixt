@@ -16,7 +16,6 @@ const Goodbye = props => {
 let helloRenderCount = 0
 const Hello = props => {
     helloRenderCount = helloRenderCount + 1
-    console.log('helloRenderCount', helloRenderCount)
     const key = update()
     return (
         <div>

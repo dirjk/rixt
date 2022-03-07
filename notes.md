@@ -31,6 +31,9 @@
 
 
 # updates
-
+scopes:
+* global (testCount, testKey)
+    * rixt ()
+        * newTag(metaKey)
 
 

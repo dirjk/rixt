@@ -49,6 +49,5 @@ const mainApp = () => (
 
 // mount('index-entry-mount', mainApp)
 // mount('index-entry-mount', testElement)
-console.log('before mount |', RootElement)
 mount('index-entry-mount', RootElement)
 

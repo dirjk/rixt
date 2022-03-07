@@ -16,7 +16,6 @@ const RenderCountElement = () => {
     const state = compState()
     state.count = 0
     updateCompState("count", state.count + 1)
-    console.log('state;', state)
     renderCountOne = renderCountOne + 1
     return (
         <div>
@@ -28,7 +27,6 @@ const RenderCountElement = () => {
 
 let renderCountTwo = 0
 export const RootElement = () => {
-    console.log('rendering', renderCountTwo)
     renderCountTwo = renderCountTwo + 1
     const key = update()
     return (
