@@ -2,6 +2,8 @@ import {
     getDomElement
 } from './utils.js'
 import {
+    getCompState,
+    setCompState,
     getScopedState,
     setScopedState
 } from './state/index.js'
@@ -15,7 +17,26 @@ let root = undefined
 let shadows = {}
 let keyToPos = {}
 let posToKey = {}
+const testKey = "abcdef_"
+let testCount = 0
 function rixt(tag, props, ...children){
+    // is it possible to tag each function with a key?
+    // no, not directly. however could do a wrapper function with saved meta data.
+    // .... except the wrapper function doesn't save context between calls to rixt(). fuck.
+    // hold on! it does save context if the count is set outside of the x arrow function! success! we can set a component key! fuck yeah!
+    // ... hold on, again... it always seems to be the value of the last key generated, not of a unique key.. hmmmmmmmm...
+    let newTag = undefined
+    if (typeof tag === 'function') {
+        testCount = testCount + 1
+        newTag = function(x) {
+            // const metaKey = String(testKey + testCount.toString())
+            // console.log('rixt() |', metaKey, tag)
+            return {
+                metaKey: String(testKey + testCount.toString()),
+                tag
+            }
+        }
+    }
     // we remove all empty strings and none/undefined children, but keep 0s.
     children = children.filter(n => {
         if (typeof n === 'number' && n === 0) {
@@ -23,7 +44,7 @@ function rixt(tag, props, ...children){
         }
         return n
     })
-    return { tag, props, children}
+    return { tag: newTag || tag, props, children}
 }
 let currentPosition = '0'
 function recursiveMount(elementObj, pos, currentNode) {
@@ -33,6 +54,7 @@ function recursiveMount(elementObj, pos, currentNode) {
     if (elementObj.tag && typeof elementObj.tag === 'string') {
         // if its a string, we can build an element out of it.
         element = document.createElement(elementObj.tag)
+        element.setAttribute('data-meta', currentNode.metaKey)
         // next we iterate through the props and attach them to the DOM of this element.
         if (elementObj.props && typeof elementObj.props === 'object') {
             Object.keys(elementObj.props).forEach(key => {
@@ -68,12 +90,16 @@ function recursiveMount(elementObj, pos, currentNode) {
     } else if (elementObj.tag && typeof elementObj.tag === 'function') {
         console.log('a function got passed to recursiveMount()... ? time for a new node!')
         let newChildNode = newNode()
-        newChildNode.parentKey = currentNode.key
-        newChildNode.type = elementObj.tag.name
         // if its a function, we need to evaluate it before we can build it.
-        let evaluatedObj = elementObj.tag(elementObj.props)
-        newChildNode.tagType = evaluatedObj.tag
+        let metaObject = elementObj.tag()
+        console.log('recursive | ', evaluatedObj)
+        newChildNode.parentKey = currentNode.key
+        newChildNode.metaKey = metaObject.metaKey
+        newChildNode.type = elementObj.tag.name
+        newChildNode.tagType = metaObject.tag.name
         newChildNode.props = elementObj.props
+        // here we actually evaluate the function without the meta data
+        let evaluatedObj = metaObject.tag(elementObj.props)
         // lets also save it so we can access it later, if needed
         currentNode.jsxChildren.push(newChildNode)
         shadows[pos] = elementObj
@@ -94,7 +120,7 @@ export function mount(mountPoint, element) {
     nodeTree.type = element.name
     nodeTree.props = topLevelJSXobject.props
     nodeTree.tagType = topLevelJSXobject.tag
-    console.log('topLevel', topLevelJSXobject, element.name)
+    console.log('topLevel', topLevelJSXobject, element.name, Object.keys(element), element)
     currentPosition = "0"
     posToKey[currentPosition] = nodeTree.key
     keyToPos[nodeTree.key] = currentPosition
@@ -136,7 +162,17 @@ export function update(...everything) {
             let newElement = recursiveMount(currentElement, elementKey, currentNode)
             currentDomElement.replaceWith(newElement)
         }
+        console.log('update() testCount |', testCount)
     }
+}
+export function updateCompState(key, value){
+    const activeComponent = "?"
+    setCompState(activeComponent, key, value)
+}
+export function compState() {
+    const activeComponent = "?"
+    console.log('compState()', activeComponent)
+    return getCompState(activeComponent)
 }
 export function scopedState(scope) {
     return getScopedState(scope, currentPosition)
